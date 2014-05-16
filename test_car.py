@@ -34,7 +34,8 @@ def restart():
     ..note:: This script must have been run by root for this function to work.
 
     """
-    command = "/sbin/shutdown -r now"
+    print 'Restarting'
+    command = '/usr/bin/sudo /sbin/shutdown -r now'
     import subprocess
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     output = process.communicate()[0]
@@ -47,11 +48,25 @@ def halt():
     ..note:: This script must have been run by root for this function to work.
 
     """
-    command = "/sbin/shutdown -r now"
+    print 'Shutting down'
+    command = '/usr/bin/sudo /sbin/shutdown now'
     import subprocess
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     output = process.communicate()[0]
     print output
+
+
+def flash_led(count, duration):
+    """Flash the led.
+
+    :param count: Number of times to flash.
+    :param duration: Length of time in ms for each flash.
+    """
+    for value in xrange(0, 10):
+        pifacedigital.leds[LED_PIN].turn_on()
+        wait(1500)
+        pifacedigital.leds[LED_PIN].turn_off()
+        wait(1500)
 
 
 def switch_pressed(event):
@@ -61,27 +76,21 @@ def switch_pressed(event):
     be turned on.
 
     """
-    if event.pin_num == 3:  # reboot
-        # Short flash the led to show we are shutting down
-        for value in xrange(0, 10):
-            event.chip.output_pins[LED_PIN].turn_on()
-            wait(100)
-            event.chip.output_pins[LED_PIN].turn_off()
+    if event.pin_num == 2:  # reboot
+        # Short flash the led to show we are restarting
+        flash_led(5, 500)
         restart()
 
-    elif event.pin_num == 4: # halt
+    elif event.pin_num == 3: # halt
         # Long flash the led to show we are shutting down
-        for value in xrange(0, 10):
-            event.chip.output_pins[LED_PIN].turn_on()
-            wait(500)
-            event.chip.output_pins[LED_PIN].turn_off()
+        flash_led(10, 1500)
         halt()
 
     elif event.pin_num in [0, 1]:
         # Go forwards (0) or backwards (1)
         event.chip.output_pins[event.pin_num].turn_on()
         # Turn on the led on pin 7 too
-        event.chip.output_pins[LED_PIN].turn_on()
+        pifacedigital.leds[LED_PIN].turn_on()
 
 
 def switch_unpressed(event):
@@ -90,11 +99,14 @@ def switch_unpressed(event):
     event.chip.output_pins[event.pin_num].turn_off()
     # Turn off the led on pin 7 after waiting an extra second
     wait(250)
-    event.chip.output_pins[LED_PIN].turn_off()
+    pifacedigital.leds[LED_PIN].turn_off()
 
 
 if __name__ == "__main__":
     pifacedigital = pifacedigitalio.PiFaceDigital()
+
+    # Flash the led to show we are online
+    flash_led(10, 500)
 
     listener = pifacedigitalio.InputEventListener(chip=pifacedigital)
     for i in range(4):
